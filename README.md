@@ -8,6 +8,7 @@ A cross-platform desktop audio routing manager (work in progress) for Windows an
 - Named, persisted audio buses (Game, Chat, Media, Aux, Mic and custom buses)
 - Map buses to available playback endpoints and control their volume / mute (where supported)
 - Discover existing Windows audio endpoints, including third-party virtual cables
+- Windows: discover active application audio sessions and change per-session volume/mute (does not move application outputs)
 - Create/remove Linux virtual sinks with PipeWire's PulseAudio compatibility layer or PulseAudio (`pactl`)
 - Re-scan devices, preserve user profiles, and show backend errors
 - Linux: enumerate active playback streams and move them to any available sink (physical or virtual), via pactl
