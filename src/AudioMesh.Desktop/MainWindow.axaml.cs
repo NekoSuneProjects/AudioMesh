@@ -233,7 +233,23 @@ public partial class MainWindow : Window
     private async void DisconnectMonitorClicked(object? sender, RoutedEventArgs e)
     {
         if (_monitorRouter is null) return;
-        if (MonitorSourceSelection.SelectedItem is not DeviceOption { Id: { } source })
+        if (MonitorSourceSelection.SelectedItem is not DeviceOption { Id: { } source } ||
+            MonitorTargetSelection.SelectedItem is not DeviceOption { Id: { } target })
+        {
+            SetStatus("Select a virtual cable and the output connection to disconnect.");
+            return;
+        }
+        try
+        {
+            await _monitorRouter.DisconnectDestinationAsync(source, target);
+            SetStatus($"Disconnected {source} → {target}.");
+        }
+        catch (Exception ex) { SetStatus("Could not disconnect monitor: " + ex.Message); }
+    }
+
+    private async void DisconnectAllMonitorsClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_monitorRouter is null || MonitorSourceSelection.SelectedItem is not DeviceOption { Id: { } source })
         {
             SetStatus("Select the virtual cable to disconnect.");
             return;
@@ -241,9 +257,9 @@ public partial class MainWindow : Window
         try
         {
             await _monitorRouter.DisconnectAsync(source);
-            SetStatus($"Disconnected monitoring for {source}.");
+            SetStatus($"Disconnected all outputs from {source}.");
         }
-        catch (Exception ex) { SetStatus("Could not disconnect monitor: " + ex.Message); }
+        catch (Exception ex) { SetStatus("Could not disconnect monitors: " + ex.Message); }
     }
 
     private async void SetStreamVolumeClicked(object? sender, RoutedEventArgs e)
