@@ -27,6 +27,8 @@ jobs:
         run: dotnet restore src/AudioMesh.Desktop/AudioMesh.Desktop.csproj
       - name: Build
         run: dotnet build src/AudioMesh.Desktop/AudioMesh.Desktop.csproj --configuration Release --no-restore
+      - name: Test core rules
+        run: dotnet test tests/AudioMesh.Core.Tests/AudioMesh.Core.Tests.csproj --configuration Release
       - name: Publish
         run: dotnet publish src/AudioMesh.Desktop/AudioMesh.Desktop.csproj --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o publish
       - uses: actions/upload-artifact@v4
