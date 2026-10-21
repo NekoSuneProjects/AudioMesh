@@ -11,6 +11,7 @@ A cross-platform desktop audio routing manager (work in progress) for Windows an
 - Create/remove Linux virtual sinks with PipeWire's PulseAudio compatibility layer or PulseAudio (`pactl`)
 - Re-scan devices, preserve user profiles, and show backend errors
 - Linux: enumerate active playback streams and move them to any available sink (physical or virtual), via pactl
+- Linux: connect AudioMesh virtual-sink monitor sources to physical or external sinks using managed loopback modules
 
 **This is a foundation, not yet a replacement for Sonar or MIXLINE.** The first milestone does not mix arbitrary audio streams, intercept applications, provide low-latency routing graphs, or install a Windows virtual driver. A bus is currently a saved assignment to a device, not a DSP mixing channel. Linux virtual sinks are real OS audio endpoints; Windows virtual endpoints must currently be installed through third-party software.
 
@@ -42,6 +43,8 @@ On Linux, `pactl info` should succeed in the active desktop audio session. Custo
 - Windows custom virtual driver not implemented.
 - Linux can move **currently active** playback streams to a selected sink, but does not yet maintain persistent per-app routing rules or forward a virtual sink's monitor to physical headphones. For hearing virtual sinks, use a loopback module or external routing tool. Windows still needs app-specific routing implementation; use OS sound settings meanwhile.
 - Linux sink removal only unloads modules created by the current AudioMesh process. It deliberately will not unload arbitrary user modules.
+- Monitor loopbacks use `module-loopback` (80 ms target latency). AudioMesh tracks module IDs only in memory. Disconnect monitors before exit: loopback modules may persist for the rest of the audio session, and a restart cannot manage old modules.
+- Monitor connections only support one external/physical destination per virtual sink for now; feedback protection prevents chaining into another AudioMesh virtual sink.
 - External device changes require clicking Refresh.
 - Endpoint volume affects the actual device, not a private bus, and may also affect other applications sharing that endpoint.
 - Microphone input devices are detected but are not processed or remixed.
