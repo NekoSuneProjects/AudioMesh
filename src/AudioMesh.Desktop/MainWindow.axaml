@@ -49,7 +49,8 @@
       <Border x:Name="WindowsMonitorPanel" Background="#202D38" Padding="12" CornerRadius="8">
         <StackPanel Spacing="8">
           <TextBlock Text="Windows Virtual Cable Monitoring" FontSize="18" FontWeight="SemiBold"/>
-          <TextBlock Text="Monitor audio already playing through an installed virtual cable. Choose a virtual source and a physical output; avoid routing loops." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <TextBlock Text="Monitor audio already playing through an installed virtual cable. First assign applications to the cable in Windows sound settings, then choose a physical monitoring output." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <Button Content="Open Windows per-app output settings" HorizontalAlignment="Left" Click="OpenWindowsRoutingSettingsClicked"/>
           <ComboBox x:Name="WindowsMonitorSource" PlaceholderText="Virtual playback cable"/>
           <ComboBox x:Name="WindowsMonitorTarget" PlaceholderText="Physical headphones / speakers"/>
           <StackPanel Orientation="Horizontal" Spacing="8">
