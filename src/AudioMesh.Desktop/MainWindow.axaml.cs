@@ -11,6 +11,7 @@ public partial class MainWindow : Window
 {
     private readonly IAudioBackend _backend = BackendFactory.Create();
     private readonly ProfileStore _store = new();
+    private readonly LinuxStreamRouter? _streamRouter = OperatingSystem.IsLinux() ? new LinuxStreamRouter() : null;
     private AudioProfile _profile = AudioProfile.Default();
     private readonly ObservableCollection<BusRow> _rows = [];
     private readonly Stack<string> _createdSinkModules = new();
@@ -22,6 +23,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         BusList.ItemsSource = _rows;
+        LinuxRoutingPanel.IsVisible = _streamRouter is not null;
         CreateSinkButton.IsEnabled = _backend.CanCreateVirtualSink;
         RemoveSinkButton.IsEnabled = false;
         Opened += async (_, _) => await LoadAsync();
@@ -35,6 +37,7 @@ public partial class MainWindow : Window
             _profile = await _store.LoadAsync();
             await RefreshAsync();
             RenderRows();
+            if (_streamRouter is not null) await RefreshStreamsAsync();
             SetStatus("Ready. Changes are saved automatically.");
         }
         catch (Exception ex) { SetStatus("Audio initialization failed: " + ex.Message); }
@@ -80,6 +83,9 @@ public partial class MainWindow : Window
     {
         _devices = (await _backend.GetDevicesAsync()).ToList();
         RenderRows();
+        if (_streamRouter is not null)
+            SinkSelection.ItemsSource = _devices.Where(d => d.Kind == AudioDeviceKind.Playback)
+                .Select(d => new DeviceOption(d.Id, d.Name)).ToList();
         SetStatus($"Found {_devices.Count} audio endpoints. Select an endpoint for each bus.");
     }
 
@@ -135,6 +141,38 @@ public partial class MainWindow : Window
             SetStatus("Removed last virtual sink created by AudioMesh.");
         }
         catch (Exception ex) { SetStatus("Could not remove cable: " + ex.Message); }
+    }
+
+    private async Task RefreshStreamsAsync()
+    {
+        if (_streamRouter is null) return;
+        var streams = await _streamRouter.GetStreamsAsync();
+        StreamSelection.ItemsSource = streams.Select(s => new StreamOption(s.Id, s.Display)).ToList();
+        if (streams.Count == 0) SetStatus("No active Linux playback streams. Start playing audio and refresh.");
+    }
+
+    private async void RefreshStreamsClicked(object? sender, RoutedEventArgs e)
+    {
+        try { await RefreshStreamsAsync(); }
+        catch (Exception ex) { SetStatus("Cannot list playback streams: " + ex.Message); }
+    }
+
+    private async void RouteStreamClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_streamRouter is null) return;
+        if (StreamSelection.SelectedItem is not StreamOption stream ||
+            SinkSelection.SelectedItem is not DeviceOption { Id: { } sink })
+        {
+            SetStatus("Select an active application stream and an output device.");
+            return;
+        }
+        try
+        {
+            await _streamRouter.MoveAsync(stream.Id, sink);
+            SetStatus($"Moved {stream.Label} to {SinkSelection.SelectedItem}.");
+            await RefreshStreamsAsync();
+        }
+        catch (Exception ex) { SetStatus("Routing failed: " + ex.Message); }
     }
 
     private void SetStatus(string text) => StatusText.Text = text;
@@ -195,6 +233,11 @@ public sealed class BusRow : INotifyPropertyChanged
 }
 
 public sealed record DeviceOption(string? Id, string Label)
+{
+    public override string ToString() => Label;
+}
+
+public sealed record StreamOption(string Id, string Label)
 {
     public override string ToString() => Label;
 }
