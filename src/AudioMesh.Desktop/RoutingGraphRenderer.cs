@@ -10,7 +10,7 @@ namespace AudioMesh.Desktop;
 public static class RoutingGraphRenderer
 {
     public static void Render(Canvas canvas, IReadOnlyList<AudioDevice> devices,
-        IEnumerable<(string Source, string Target)> edges)
+        IEnumerable<(string Source, string Target)> edges, Action<AudioDevice>? onDeviceClicked = null)
     {
         canvas.Children.Clear();
         var virtualSources = devices
@@ -51,9 +51,9 @@ public static class RoutingGraphRenderer
         }
 
         foreach (var item in virtualSources.Select((d, i) => (d, i)))
-            AddNode(canvas, item.d.Name, 18, 42 + item.i * 54, Brushes.DarkSlateGray, Brushes.MediumTurquoise);
+            AddNode(canvas, item.d, 18, 42 + item.i * 54, Brushes.DarkSlateGray, Brushes.MediumTurquoise, onDeviceClicked);
         foreach (var item in outputs.Select((d, i) => (d, i)))
-            AddNode(canvas, item.d.Name, 310, 42 + item.i * 54, Brushes.DarkSlateBlue, Brushes.LightSteelBlue);
+            AddNode(canvas, item.d, 310, 42 + item.i * 54, Brushes.DarkSlateBlue, Brushes.LightSteelBlue, onDeviceClicked);
     }
 
     private static void AddText(Canvas canvas, string text, double x, double y, IBrush color)
@@ -64,21 +64,20 @@ public static class RoutingGraphRenderer
         canvas.Children.Add(label);
     }
 
-    private static void AddNode(Canvas canvas, string name, double x, double y, IBrush fill, IBrush border)
+    private static void AddNode(Canvas canvas, AudioDevice device, double x, double y,
+        IBrush fill, IBrush border, Action<AudioDevice>? onClick)
     {
-        var node = new Border
+        var node = new Button
         {
-            Width = 177, Height = 38,
+            Width = 177, Height = 38, Padding = new Thickness(4),
             Background = fill, BorderBrush = border, BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Child = new TextBlock
+            Content = new TextBlock
             {
-                Text = name, Foreground = Brushes.White, FontSize = 12,
-                MaxWidth = 165, TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                Text = device.Name, Foreground = Brushes.White, FontSize = 12,
+                MaxWidth = 165, TextTrimming = TextTrimming.CharacterEllipsis
             }
         };
+        if (onClick is not null) node.Click += (_, _) => onClick(device);
         Canvas.SetLeft(node, x);
         Canvas.SetTop(node, y);
         canvas.Children.Add(node);
