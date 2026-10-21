@@ -38,6 +38,16 @@ dotnet run --project src/AudioMesh.Desktop
 
 On Linux, `pactl info` should succeed in the active desktop audio session. Custom sinks are created using `pactl load-module module-null-sink` and unloaded through `pactl unload-module`. These are session-scoped and may disappear after logging out or restarting the audio server. AudioMesh restores saved virtual-sink names on startup when a running audio server is available. It does not run in the background before login or provide a system service.
 
+## Automated regression tests
+
+The shared routing policy is covered by xUnit tests and tested on Windows and Linux through GitHub Actions. To run locally:
+
+```sh
+dotnet test tests/AudioMesh.Core.Tests/AudioMesh.Core.Tests.csproj
+```
+
+These cover default channel uniqueness, app/executable matching, disabled rules, missing destinations and manual override precedence. They are unit tests only; actual audio delivery still requires the manual device tests in [docs/AUDIO-TESTING.md](docs/AUDIO-TESTING.md).
+
 ## Architecture
 
 - `AudioMesh.Core`: buses, user settings and audio backend contracts
