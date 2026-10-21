@@ -5,6 +5,7 @@ A cross-platform desktop audio routing manager (work in progress) for Windows an
 ## First milestone
 
 - Avalonia desktop mixer showing detected recording and playback devices
+- Original dark Sonar-inspired channel mixer window (Game / Chat / Media / Aux / Mic) with draggable app chips on Linux. Press **Open Channel Mixer** in the main window. Linux drops move the active playback stream to the selected channel endpoint; on Windows this is not yet supported and apps still need routing through Windows sound settings.
 - Named, persisted audio buses (Game, Chat, Media, Aux, Mic and custom buses)
 - Read-only live routing graph of AudioMesh-managed virtual cable monitor connections; connection editing is available in the adjacent panels
 - Map buses to available playback endpoints and control their volume / mute (where supported)
@@ -57,7 +58,7 @@ These cover default channel uniqueness, app/executable matching, disabled rules,
 
 ## Known limitations
 
-- A fully draggable MIXLINE-style graph editor and general-purpose DSP graph are not implemented yet. The current graph displays live monitoring connections only.
+- A full Sonar-style parametric EQ, spatial engine, and general-purpose DSP graph are not implemented yet. The channel mixer is a functional routing UI on Linux, not a copy of SteelSeries assets or DSP. The current graph displays live monitoring connections only.
 - Windows custom virtual driver not implemented. Virtual cables such as VB-CABLE must already be installed. WASAPI monitoring may need Windows playback formats aligned (for example 48 kHz stereo) and must be tested on actual devices. Do not connect the physical monitoring output back into the same virtual cable.
 - Linux routing rules are saved to the JSON profile and reapplied while AudioMesh runs, but do not work when the application is closed. Route matching uses executable name where available; applications without identifying metadata cannot be saved. Windows still needs app-specific routing implementation; use OS sound settings meanwhile.
 - Linux sink removal only unloads modules created by the current AudioMesh process. It deliberately will not unload arbitrary user modules.
