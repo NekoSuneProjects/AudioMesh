@@ -14,7 +14,7 @@ public sealed class WindowsSessionMixer
         {
             using (device)
             {
-                using var manager = device.AudioSessionManager;
+                var manager = device.AudioSessionManager;
                 for (var i = 0; i < manager.Sessions.Count; i++)
                 {
                     using var session = manager.Sessions[i];
@@ -45,7 +45,7 @@ public sealed class WindowsSessionMixer
     {
         using var enumerator = new MMDeviceEnumerator();
         using var device = enumerator.GetDevice(endpointId);
-        using var manager = device.AudioSessionManager;
+        var manager = device.AudioSessionManager;
         for (var i = 0; i < manager.Sessions.Count; i++)
         {
             using var session = manager.Sessions[i];
