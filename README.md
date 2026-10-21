@@ -13,6 +13,7 @@ A cross-platform desktop audio routing manager (work in progress) for Windows an
 - Linux: enumerate active playback streams and move them to any available sink (physical or virtual), via pactl
 - Linux: connect AudioMesh virtual-sink monitor sources to physical or external sinks using managed loopback modules
 - Linux: save per-application routing rules and reapply them to new audio streams every 3 seconds while the app is open
+- Linux: manual moves (including moves made by another mixer) override automatic routing for the remaining lifetime of that playback stream, avoiding routing fights; updating a rule clears those overrides
 
 **This is a foundation, not yet a replacement for Sonar or MIXLINE.** The first milestone does not mix arbitrary audio streams, intercept applications, provide low-latency routing graphs, or install a Windows virtual driver. A bus is currently a saved assignment to a device, not a DSP mixing channel. Linux virtual sinks are real OS audio endpoints; Windows virtual endpoints must currently be installed through third-party software.
 
