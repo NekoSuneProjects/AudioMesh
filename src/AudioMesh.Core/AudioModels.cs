@@ -20,6 +20,7 @@ public sealed class AudioProfile
 {
     public List<AudioBus> Buses { get; set; } = [];
     public List<AppRoutingRule> AppRoutingRules { get; set; } = [];
+    public List<string> VirtualSinkNames { get; set; } = [];
     public static AudioProfile Default() => new()
     {
         Buses = new[] { "Game", "Chat", "Media", "Aux", "Mic" }.Select(n => new AudioBus { Name = n }).ToList()
