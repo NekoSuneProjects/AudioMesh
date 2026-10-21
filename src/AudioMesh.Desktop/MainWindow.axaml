@@ -29,6 +29,10 @@
         <Button Grid.Column="1" x:Name="CreateSinkButton" Content="+ Create Linux virtual cable" Click="CreateSinkClicked"/>
         <Button Grid.Column="2" x:Name="RemoveSinkButton" Content="Remove last created cable" Click="RemoveSinkClicked"/>
       </Grid>
+      <StackPanel x:Name="SavedCablesPanel" Orientation="Horizontal" Spacing="8">
+        <ComboBox x:Name="SavedCableSelection" MinWidth="240" PlaceholderText="Saved Linux virtual cable"/>
+        <Button Content="Remove selected saved cable" Click="RemoveSavedCableClicked"/>
+      </StackPanel>
       <Border x:Name="WindowsSessionPanel" Background="#202D38" Padding="12" CornerRadius="8">
         <StackPanel Spacing="8">
           <TextBlock Text="Windows Application Mixer" FontSize="18" FontWeight="SemiBold"/>
