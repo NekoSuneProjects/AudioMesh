@@ -11,6 +11,7 @@ public partial class MainWindow : Window
 {
     private readonly IAudioBackend _backend = BackendFactory.Create();
     private readonly ProfileStore _store = new();
+    private readonly LinuxMonitorRouter? _monitorRouter = OperatingSystem.IsLinux() ? new LinuxMonitorRouter() : null;
     private readonly LinuxStreamRouter? _streamRouter = OperatingSystem.IsLinux() ? new LinuxStreamRouter() : null;
     private AudioProfile _profile = AudioProfile.Default();
     private readonly ObservableCollection<BusRow> _rows = [];
@@ -24,6 +25,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         BusList.ItemsSource = _rows;
         LinuxRoutingPanel.IsVisible = _streamRouter is not null;
+        LinuxMonitorPanel.IsVisible = _monitorRouter is not null;
         CreateSinkButton.IsEnabled = _backend.CanCreateVirtualSink;
         RemoveSinkButton.IsEnabled = false;
         Opened += async (_, _) => await LoadAsync();
@@ -86,6 +88,15 @@ public partial class MainWindow : Window
         if (_streamRouter is not null)
             SinkSelection.ItemsSource = _devices.Where(d => d.Kind == AudioDeviceKind.Playback)
                 .Select(d => new DeviceOption(d.Id, d.Name)).ToList();
+        if (_monitorRouter is not null)
+        {
+            MonitorSourceSelection.ItemsSource = _devices
+                .Where(d => d.Kind == AudioDeviceKind.Playback && d.Id.StartsWith("audiomesh_", StringComparison.Ordinal))
+                .Select(d => new DeviceOption(d.Id, d.Name)).ToList();
+            MonitorTargetSelection.ItemsSource = _devices
+                .Where(d => d.Kind == AudioDeviceKind.Playback && !d.Id.StartsWith("audiomesh_", StringComparison.Ordinal))
+                .Select(d => new DeviceOption(d.Id, d.Name)).ToList();
+        }
         SetStatus($"Found {_devices.Count} audio endpoints. Select an endpoint for each bus.");
     }
 
@@ -173,6 +184,39 @@ public partial class MainWindow : Window
             await RefreshStreamsAsync();
         }
         catch (Exception ex) { SetStatus("Routing failed: " + ex.Message); }
+    }
+
+    private async void ConnectMonitorClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_monitorRouter is null) return;
+        if (MonitorSourceSelection.SelectedItem is not DeviceOption { Id: { } source } ||
+            MonitorTargetSelection.SelectedItem is not DeviceOption { Id: { } target })
+        {
+            SetStatus("Choose a virtual cable and a monitoring output.");
+            return;
+        }
+        try
+        {
+            await _monitorRouter.ConnectAsync(source, target);
+            SetStatus($"Monitoring {source} through {target}. Audio is now forwarded to that output.");
+        }
+        catch (Exception ex) { SetStatus("Monitor connection failed: " + ex.Message); }
+    }
+
+    private async void DisconnectMonitorClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_monitorRouter is null) return;
+        if (MonitorSourceSelection.SelectedItem is not DeviceOption { Id: { } source })
+        {
+            SetStatus("Select the virtual cable to disconnect.");
+            return;
+        }
+        try
+        {
+            await _monitorRouter.DisconnectAsync(source);
+            SetStatus($"Disconnected monitoring for {source}.");
+        }
+        catch (Exception ex) { SetStatus("Could not disconnect monitor: " + ex.Message); }
     }
 
     private void SetStatus(string text) => StatusText.Text = text;
