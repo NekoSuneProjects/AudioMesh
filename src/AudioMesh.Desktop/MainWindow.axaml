@@ -40,6 +40,12 @@
           <TextBlock Text="Saved automatic routing rules (checked every 3 seconds while AudioMesh is open)" Foreground="#B8CBD8"/>
           <ComboBox x:Name="RoutingRuleSelection" HorizontalAlignment="Stretch" PlaceholderText="Saved application routing rules"/>
           <Button Content="Delete selected rule" HorizontalAlignment="Left" Click="DeleteRoutingRuleClicked"/>
+          <TextBlock Text="Active application volume (changes this playback stream only)" Foreground="#B8CBD8"/>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox x:Name="StreamVolumePercent" Watermark="Volume % (0–150)" Text="100"/>
+            <Button Grid.Column="1" Content="Set volume" Click="SetStreamVolumeClicked"/>
+            <Button Grid.Column="2" Content="Toggle mute" Click="ToggleStreamMuteClicked"/>
+          </Grid>
         </StackPanel>
       </Border>
       <Border x:Name="LinuxMonitorPanel" Background="#202D38" Padding="12" CornerRadius="8">
