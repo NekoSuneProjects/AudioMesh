@@ -29,6 +29,16 @@
         <Button Grid.Column="1" x:Name="CreateSinkButton" Content="+ Create Linux virtual cable" Click="CreateSinkClicked"/>
         <Button Grid.Column="2" x:Name="RemoveSinkButton" Content="Remove last created cable" Click="RemoveSinkClicked"/>
       </Grid>
+      <Border x:Name="LinuxRoutingPanel" Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Application Audio Routing (Linux)" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Move a running application playback stream to any physical or virtual output. This changes the active stream, not future streams." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <Button Content="Refresh application streams" HorizontalAlignment="Left" Click="RefreshStreamsClicked"/>
+          <ComboBox x:Name="StreamSelection" HorizontalAlignment="Stretch" PlaceholderText="Select running application audio"/>
+          <ComboBox x:Name="SinkSelection" HorizontalAlignment="Stretch" PlaceholderText="Select destination output"/>
+          <Button Content="Route selected stream to output" HorizontalAlignment="Left" Click="RouteStreamClicked"/>
+        </StackPanel>
+      </Border>
       <TextBlock Text="Channels" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0"/>
     </StackPanel>
     <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,12,0,0">
