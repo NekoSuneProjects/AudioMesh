@@ -29,6 +29,21 @@ public sealed class LinuxStreamRouter
         return result;
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> GetSinkIndicesAsync(CancellationToken token = default)
+    {
+        var output = await PactlAsync(["--format=json", "list", "sinks"], token);
+        using var document = JsonDocument.Parse(output);
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var item in document.RootElement.EnumerateArray())
+        {
+            if (item.TryGetProperty("name", out var name) &&
+                item.TryGetProperty("index", out var index) &&
+                name.ValueKind == JsonValueKind.String)
+                result[name.GetString()!] = index.ToString();
+        }
+        return result;
+    }
+
     public async Task MoveAsync(string streamId, string sinkId, CancellationToken token = default)
     {
         // Verify both against the audio server: never allow arbitrary CLI arguments from user input.
