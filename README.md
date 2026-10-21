@@ -10,6 +10,7 @@ A cross-platform desktop audio routing manager (work in progress) for Windows an
 - Discover existing Windows audio endpoints, including third-party virtual cables
 - Windows: discover active application audio sessions and change per-session volume/mute (does not move application outputs)
 - Create/remove Linux virtual sinks with PipeWire's PulseAudio compatibility layer or PulseAudio (`pactl`)
+- Save Linux virtual-sink names to profile and recreate missing sinks when the application opens
 - Re-scan devices, preserve user profiles, and show backend errors
 - Linux: enumerate active playback streams and move them to any available sink (physical or virtual), via pactl
 - Linux: fan out AudioMesh virtual-sink monitors to multiple physical or external sinks using managed loopback modules; disconnect destinations independently
@@ -33,7 +34,7 @@ dotnet restore src/AudioMesh.Desktop/AudioMesh.Desktop.csproj
 dotnet run --project src/AudioMesh.Desktop
 ```
 
-On Linux, `pactl info` should succeed in the active desktop audio session. Custom sinks are created using `pactl load-module module-null-sink` and unloaded through `pactl unload-module`. These are session-scoped and may disappear after logging out or restarting the audio server. AudioMesh does not automatically recreate sinks on login yet.
+On Linux, `pactl info` should succeed in the active desktop audio session. Custom sinks are created using `pactl load-module module-null-sink` and unloaded through `pactl unload-module`. These are session-scoped and may disappear after logging out or restarting the audio server. AudioMesh restores saved virtual-sink names on startup when a running audio server is available. It does not run in the background before login or provide a system service.
 
 ## Architecture
 
@@ -50,6 +51,7 @@ On Linux, `pactl info` should succeed in the active desktop audio session. Custo
 - Monitor loopbacks use `module-loopback` (80 ms target latency). AudioMesh attempts to unload managed monitoring modules on exit; crashes or abrupt shutdown may leave loopbacks running until the audio server is restarted.
 - Monitor connections support multiple external/physical destinations per AudioMesh virtual sink; feedback protection prevents chaining into another AudioMesh virtual sink.
 - External device changes require clicking Refresh.
+- The remove-last-cable command only removes modules created by the current AudioMesh process; saved sinks that survive a previous app exit are reused but cannot yet be removed from the UI after relaunch.
 - Endpoint volume affects the actual device, not a private bus, and may also affect other applications sharing that endpoint.
 - Microphone input devices are detected but are not processed or remixed.
 
