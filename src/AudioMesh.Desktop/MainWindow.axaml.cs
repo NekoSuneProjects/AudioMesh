@@ -53,6 +53,12 @@ public partial class MainWindow : Window
         };
     }
 
+    private void OpenChannelMixerClicked(object? sender, RoutedEventArgs e)
+    {
+        var mixer = new ChannelMixerWindow();
+        mixer.Show(this);
+    }
+
     private async Task LoadAsync()
     {
         try
