@@ -36,7 +36,10 @@
           <Button Content="Refresh application streams" HorizontalAlignment="Left" Click="RefreshStreamsClicked"/>
           <ComboBox x:Name="StreamSelection" HorizontalAlignment="Stretch" PlaceholderText="Select running application audio"/>
           <ComboBox x:Name="SinkSelection" HorizontalAlignment="Stretch" PlaceholderText="Select destination output"/>
-          <Button Content="Route selected stream to output" HorizontalAlignment="Left" Click="RouteStreamClicked"/>
+          <StackPanel Orientation="Horizontal" Spacing="8"><Button Content="Route now" Click="RouteStreamClicked"/><Button Content="Save automatic rule" Click="SaveRoutingRuleClicked"/></StackPanel>
+          <TextBlock Text="Saved automatic routing rules (checked every 3 seconds while AudioMesh is open)" Foreground="#B8CBD8"/>
+          <ComboBox x:Name="RoutingRuleSelection" HorizontalAlignment="Stretch" PlaceholderText="Saved application routing rules"/>
+          <Button Content="Delete selected rule" HorizontalAlignment="Left" Click="DeleteRoutingRuleClicked"/>
         </StackPanel>
       </Border>
       <Border x:Name="LinuxMonitorPanel" Background="#202D38" Padding="12" CornerRadius="8">
