@@ -131,7 +131,7 @@ public partial class MainWindow : Window
 
     private async void RefreshClicked(object? sender, RoutedEventArgs e)
     {
-        try { await RefreshAsync(); }
+        try { await RestoreVirtualSinksAsync(); await RefreshAsync(); }
         catch (Exception ex) { SetStatus("Refresh failed: " + ex.Message); }
     }
 
