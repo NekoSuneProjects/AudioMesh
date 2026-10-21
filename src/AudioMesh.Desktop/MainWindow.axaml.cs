@@ -32,6 +32,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         BusList.ItemsSource = _rows;
         WindowsSessionPanel.IsVisible = _windowsMixer is not null;
+        SavedCablesPanel.IsVisible = _backend is LinuxBackend;
         LinuxRoutingPanel.IsVisible = _streamRouter is not null;
         LinuxMonitorPanel.IsVisible = _monitorRouter is not null;
         CreateSinkButton.IsEnabled = _backend.CanCreateVirtualSink;
@@ -56,6 +57,7 @@ public partial class MainWindow : Window
             _profile = await _store.LoadAsync();
             _profile.VirtualSinkNames ??= [];
             await RestoreVirtualSinksAsync();
+            RenderSavedCables();
             await RefreshAsync();
             RenderRows();
             if (_windowsMixer is not null) await RefreshWindowsSessionsAsync();
@@ -189,6 +191,7 @@ public partial class MainWindow : Window
             _createdSinkModules.Push((id, name));
             _profile.VirtualSinkNames.Add(name);
             await SaveAsync();
+            RenderSavedCables();
             RemoveSinkButton.IsEnabled = true;
             await RefreshAsync();
             SetStatus($"Created Linux virtual sink audiomesh_{name} (module {id}). Select it from a bus.");
@@ -205,11 +208,43 @@ public partial class MainWindow : Window
             _createdSinkModules.Pop();
             _profile.VirtualSinkNames.Remove(registration.Name);
             await SaveAsync();
+            RenderSavedCables();
             RemoveSinkButton.IsEnabled = _createdSinkModules.Count > 0;
             await RefreshAsync();
             SetStatus("Removed last virtual sink created by AudioMesh.");
         }
         catch (Exception ex) { SetStatus("Could not remove cable: " + ex.Message); }
+    }
+
+    private void RenderSavedCables()
+    {
+        SavedCableSelection.ItemsSource = _profile.VirtualSinkNames
+            .Distinct(StringComparer.Ordinal).OrderBy(n => n).ToList();
+    }
+
+    private async void RemoveSavedCableClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_backend is not LinuxBackend linux || SavedCableSelection.SelectedItem is not string name)
+        {
+            SetStatus("Select a saved Linux virtual cable to remove.");
+            return;
+        }
+        try
+        {
+            if (_monitorRouter is not null)
+                await _monitorRouter.DisconnectAsync("audiomesh_" + name);
+            var unloaded = await linux.RemoveNamedVirtualSinkAsync(name);
+            _profile.VirtualSinkNames.RemoveAll(n => n == name);
+            var survivors = _createdSinkModules.Where(r => r.Name != name).Reverse().ToArray();
+            _createdSinkModules.Clear();
+            foreach (var entry in survivors) _createdSinkModules.Push(entry);
+            RemoveSinkButton.IsEnabled = _createdSinkModules.Count > 0;
+            await SaveAsync();
+            RenderSavedCables();
+            await RefreshAsync();
+            SetStatus(unloaded ? $"Removed saved cable {name}." : $"Forgot cable {name}; it was not loaded.");
+        }
+        catch (Exception ex) { SetStatus("Could not remove saved cable: " + ex.Message); }
     }
 
     private async Task RefreshStreamsAsync()
