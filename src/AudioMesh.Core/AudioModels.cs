@@ -10,9 +10,16 @@ public sealed class AudioBus
     public float Volume { get; set; } = 1f;
     public bool Muted { get; set; }
 }
+public sealed class AppRoutingRule
+{
+    public string Application { get; set; } = "";
+    public string SinkId { get; set; } = "";
+    public bool Enabled { get; set; } = true;
+}
 public sealed class AudioProfile
 {
     public List<AudioBus> Buses { get; set; } = [];
+    public List<AppRoutingRule> AppRoutingRules { get; set; } = [];
     public static AudioProfile Default() => new()
     {
         Buses = new[] { "Game", "Chat", "Media", "Aux", "Mic" }.Select(n => new AudioBus { Name = n }).ToList()
