@@ -12,6 +12,7 @@ public partial class MainWindow : Window
 {
     private readonly IAudioBackend _backend = BackendFactory.Create();
     private readonly ProfileStore _store = new();
+    private readonly WindowsSessionMixer? _windowsMixer = OperatingSystem.IsWindows() ? new WindowsSessionMixer() : null;
     private readonly LinuxMonitorRouter? _monitorRouter = OperatingSystem.IsLinux() ? new LinuxMonitorRouter() : null;
     private readonly LinuxStreamRouter? _streamRouter = OperatingSystem.IsLinux() ? new LinuxStreamRouter() : null;
     private AudioProfile _profile = AudioProfile.Default();
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         BusList.ItemsSource = _rows;
+        WindowsSessionPanel.IsVisible = _windowsMixer is not null;
         LinuxRoutingPanel.IsVisible = _streamRouter is not null;
         LinuxMonitorPanel.IsVisible = _monitorRouter is not null;
         CreateSinkButton.IsEnabled = _backend.CanCreateVirtualSink;
@@ -54,6 +56,7 @@ public partial class MainWindow : Window
             _profile = await _store.LoadAsync();
             await RefreshAsync();
             RenderRows();
+            if (_windowsMixer is not null) await RefreshWindowsSessionsAsync();
             if (_streamRouter is not null)
             {
                 await RefreshStreamsAsync();
@@ -270,6 +273,48 @@ public partial class MainWindow : Window
             SetStatus(muted ? $"Muted {stream.Label}." : $"Unmuted {stream.Label}.");
         }
         catch (Exception ex) { SetStatus("Mute change failed: " + ex.Message); }
+    }
+
+    private async Task RefreshWindowsSessionsAsync()
+    {
+        if (_windowsMixer is null) return;
+        var sessions = await _windowsMixer.ListAsync();
+        WindowsSessionSelection.ItemsSource = sessions.ToList();
+        if (sessions.Count == 0) SetStatus("No active Windows audio sessions. Play audio and refresh.");
+    }
+
+    private async void RefreshWindowsSessionsClicked(object? sender, RoutedEventArgs e)
+    {
+        try { await RefreshWindowsSessionsAsync(); }
+        catch (Exception ex) { SetStatus("Windows audio session refresh failed: " + ex.Message); }
+    }
+
+    private async void SetWindowsVolumeClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_windowsMixer is null || WindowsSessionSelection.SelectedItem is not WindowsSession session)
+        { SetStatus("Select an active Windows audio session."); return; }
+        if (!int.TryParse(WindowsSessionVolume.Text, out var percentage) || percentage < 0 || percentage > 100)
+        { SetStatus("Enter a volume percentage between 0 and 100."); return; }
+        try
+        {
+            await _windowsMixer.SetAsync(session.EndpointId, session.SessionId, percentage / 100f, null);
+            SetStatus($"Set {session.Name} to {percentage}%.");
+            await RefreshWindowsSessionsAsync();
+        }
+        catch (Exception ex) { SetStatus("Windows volume change failed: " + ex.Message); }
+    }
+
+    private async void ToggleWindowsMuteClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_windowsMixer is null || WindowsSessionSelection.SelectedItem is not WindowsSession session)
+        { SetStatus("Select an active Windows audio session."); return; }
+        try
+        {
+            await _windowsMixer.SetAsync(session.EndpointId, session.SessionId, null, !session.Muted);
+            SetStatus($"{(session.Muted ? "Unmuted" : "Muted")} {session.Name}.");
+            await RefreshWindowsSessionsAsync();
+        }
+        catch (Exception ex) { SetStatus("Windows mute change failed: " + ex.Message); }
     }
 
     private void RenderRules()
