@@ -92,7 +92,7 @@ public sealed class ChannelMixerWindow : Window
         _cards.Children.Clear();
         _unassigned.Children.Clear();
         var assigned = new HashSet<string>();
-        var buses = _profile.Buses.Where(b => new[] { "Game", "Chat", "Media", "Aux", "Mic" }.Contains(b.Name))
+        var buses = _profile.Buses
             .OrderBy(b => Array.IndexOf(new[] { "Game", "Chat", "Media", "Aux", "Mic" }, b.Name)).ToList();
         foreach (var bus in buses)
         {
@@ -136,7 +136,7 @@ public sealed class ChannelMixerWindow : Window
         };
         panel.Children.Add(selector);
         panel.Children.Add(Text("Endpoint volume", 12, "#9CACC1"));
-        var volume = new Slider { Minimum = 0, Maximum = 100, Value = bus.Volume * 100, Width = 170 };
+        var volume = new Slider { Minimum = 0, Maximum = 100, Value = bus.Volume * 100, Orientation = Orientation.Vertical, Height = 210, HorizontalAlignment = HorizontalAlignment.Center };
         volume.PropertyChanged += async (_, e) =>
         {
             if (e.Property != Slider.ValueProperty) return;
