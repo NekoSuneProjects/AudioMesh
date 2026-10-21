@@ -29,6 +29,19 @@
         <Button Grid.Column="1" x:Name="CreateSinkButton" Content="+ Create Linux virtual cable" Click="CreateSinkClicked"/>
         <Button Grid.Column="2" x:Name="RemoveSinkButton" Content="Remove last created cable" Click="RemoveSinkClicked"/>
       </Grid>
+      <Border x:Name="WindowsSessionPanel" Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Windows Application Mixer" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Adjust audio sessions independently. This does not change which virtual cable the app uses." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <Button Content="Refresh Windows audio sessions" Click="RefreshWindowsSessionsClicked" HorizontalAlignment="Left"/>
+          <ComboBox x:Name="WindowsSessionSelection" PlaceholderText="Select active Windows application audio"/>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox x:Name="WindowsSessionVolume" Text="100" Watermark="Volume 0–100%"/>
+            <Button Grid.Column="1" Content="Set volume" Click="SetWindowsVolumeClicked"/>
+            <Button Grid.Column="2" Content="Toggle mute" Click="ToggleWindowsMuteClicked"/>
+          </Grid>
+        </StackPanel>
+      </Border>
       <Border x:Name="LinuxRoutingPanel" Background="#202D38" Padding="12" CornerRadius="8">
         <StackPanel Spacing="8">
           <TextBlock Text="Application Audio Routing (Linux)" FontSize="18" FontWeight="SemiBold"/>
