@@ -1,0 +1,132 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AudioMesh.Desktop.MainWindow"
+        Title="NekoSune AudioMesh" Width="1050" Height="740" MinWidth="680" MinHeight="500"
+        Background="#151B26">
+  <Window.Styles>
+    <Style Selector="TextBlock"><Setter Property="Foreground" Value="#E9F1F8"/></Style>
+    <Style Selector="Button"><Setter Property="Margin" Value="0,0,8,0"/></Style>
+  </Window.Styles>
+  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="22" Spacing="12">
+    <StackPanel Spacing="12">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Text="AudioMesh" FontSize="30" FontWeight="Bold" Foreground="#49DABE"/>
+          <TextBlock Text="NekoSune • cross-platform audio control" Foreground="#A8BCCB"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><Button Content="Open Channel Mixer" Click="OpenChannelMixerClicked"/><Button Content="Refresh devices" Click="RefreshClicked"/></StackPanel>
+      </Grid>
+      <Border Background="#253042" Padding="12" CornerRadius="8">
+        <TextBlock x:Name="StatusText" Text="Starting audio backend…" TextWrapping="Wrap"/>
+      </Border>
+      <TextBlock Text="A bus is currently a saved endpoint assignment. App-stream routing and virtual mixers are under development." TextWrapping="Wrap" Foreground="#BDC7D3"/>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBox x:Name="BusName" Watermark="New bus name (e.g. Discord or Music)" />
+        <Button Grid.Column="1" Content="+ Add bus" Click="AddBusClicked"/>
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+        <TextBox x:Name="SinkName" Watermark="Linux virtual cable name (e.g. Music)" />
+        <Button Grid.Column="1" x:Name="CreateSinkButton" Content="+ Create Linux virtual cable" Click="CreateSinkClicked"/>
+        <Button Grid.Column="2" x:Name="RemoveSinkButton" Content="Remove last created cable" Click="RemoveSinkClicked"/>
+      </Grid>
+      <StackPanel x:Name="SavedCablesPanel" Orientation="Horizontal" Spacing="8">
+        <ComboBox x:Name="SavedCableSelection" MinWidth="240" PlaceholderText="Saved Linux virtual cable"/>
+        <Button Content="Remove selected saved cable" Click="RemoveSavedCableClicked"/>
+      </StackPanel>
+      <Border x:Name="WindowsSessionPanel" Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Windows Application Mixer" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Adjust audio sessions independently. This does not change which virtual cable the app uses." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <Button Content="Refresh Windows audio sessions" Click="RefreshWindowsSessionsClicked" HorizontalAlignment="Left"/>
+          <ComboBox x:Name="WindowsSessionSelection" PlaceholderText="Select active Windows application audio"/>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox x:Name="WindowsSessionVolume" Text="100" Watermark="Volume 0–100%"/>
+            <Button Grid.Column="1" Content="Set volume" Click="SetWindowsVolumeClicked"/>
+            <Button Grid.Column="2" Content="Toggle mute" Click="ToggleWindowsMuteClicked"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+      <Border x:Name="WindowsMonitorPanel" Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Windows Virtual Cable Monitoring" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Monitor audio already playing through an installed virtual cable. First assign applications to the cable in Windows sound settings, then choose a physical monitoring output." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <Button Content="Open Windows per-app output settings" HorizontalAlignment="Left" Click="OpenWindowsRoutingSettingsClicked"/>
+          <ComboBox x:Name="WindowsMonitorSource" PlaceholderText="Virtual playback cable"/>
+          <ComboBox x:Name="WindowsMonitorTarget" PlaceholderText="Physical headphones / speakers"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Connect" Click="ConnectWindowsMonitorClicked"/>
+            <Button Content="Disconnect selected" Click="DisconnectWindowsMonitorClicked"/>
+            <Button Content="Disconnect all from source" Click="DisconnectAllWindowsMonitorsClicked"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border x:Name="LinuxRoutingPanel" Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Application Audio Routing (Linux)" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Move a running application playback stream to any physical or virtual output. This changes the active stream, not future streams." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <Button Content="Refresh application streams" HorizontalAlignment="Left" Click="RefreshStreamsClicked"/>
+          <ComboBox x:Name="StreamSelection" HorizontalAlignment="Stretch" PlaceholderText="Select running application audio"/>
+          <ComboBox x:Name="SinkSelection" HorizontalAlignment="Stretch" PlaceholderText="Select destination output"/>
+          <StackPanel Orientation="Horizontal" Spacing="8"><Button Content="Route now" Click="RouteStreamClicked"/><Button Content="Save automatic rule" Click="SaveRoutingRuleClicked"/></StackPanel>
+          <TextBlock Text="Saved automatic routing rules (checked every 3 seconds while AudioMesh is open)" Foreground="#B8CBD8"/>
+          <ComboBox x:Name="RoutingRuleSelection" HorizontalAlignment="Stretch" PlaceholderText="Saved application routing rules"/>
+          <Button Content="Delete selected rule" HorizontalAlignment="Left" Click="DeleteRoutingRuleClicked"/>
+          <TextBlock Text="Active application volume (changes this playback stream only)" Foreground="#B8CBD8"/>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox x:Name="StreamVolumePercent" Watermark="Volume % (0–150)" Text="100"/>
+            <Button Grid.Column="1" Content="Set volume" Click="SetStreamVolumeClicked"/>
+            <Button Grid.Column="2" Content="Toggle mute" Click="ToggleStreamMuteClicked"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+      <Border x:Name="LinuxMonitorPanel" Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Virtual Cable Monitoring (Linux)" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Send a virtual sink to multiple headphones, speakers, or other external outputs. Choose one destination at a time; you can remove individual connections." Foreground="#B8CBD8" TextWrapping="Wrap"/>
+          <ComboBox x:Name="MonitorSourceSelection" PlaceholderText="AudioMesh virtual cable" HorizontalAlignment="Stretch"/>
+          <ComboBox x:Name="MonitorTargetSelection" PlaceholderText="Headphones / speakers" HorizontalAlignment="Stretch"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Connect monitor" Click="ConnectMonitorClicked"/>
+            <Button Content="Disconnect selected output" Click="DisconnectMonitorClicked"/>
+            <Button Content="Disconnect all outputs" Click="DisconnectAllMonitorsClicked"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Live Routing Graph" FontSize="18" FontWeight="SemiBold"/>
+            <Button Content="Refresh graph" Click="RefreshRoutingGraphClicked"/>
+          </StackPanel>
+          <TextBlock Text="Shows real AudioMesh-managed monitor routes. Click a virtual source node, then click a physical output node to connect them; use the panels above to disconnect." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <Canvas x:Name="RoutingCanvas" Height="180" MinWidth="510" Background="#151B26"/>
+        </StackPanel>
+      </Border>
+      <TextBlock Text="Channels" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0"/>
+    </StackPanel>
+    <StackPanel Spacing="4" Margin="0,12,0,0">
+      <TextBlock Text="On Windows, install VB-CABLE or another virtual device to see it in the list. On Linux, virtual sinks are created via pactl." Foreground="#A8BCCB" TextWrapping="Wrap"/>
+    </StackPanel>
+    <ItemsControl x:Name="BusList">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Background="#252F3D" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+              <StackPanel Spacing="9">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding Name}" FontSize="17" FontWeight="SemiBold"/>
+                  <Button Grid.Column="1" Content="Remove" Tag="{Binding Id}" Click="RemoveBusClicked"/>
+                </Grid>
+                <ComboBox ItemsSource="{Binding AvailableDevices}" SelectedItem="{Binding SelectedDevice, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+                  <TextBlock Text="Volume" VerticalAlignment="Center"/>
+                  <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding VolumePercent, Mode=TwoWay}"/>
+                  <TextBlock Grid.Column="2" Text="{Binding VolumeLabel}" VerticalAlignment="Center" MinWidth="42"/>
+                  <CheckBox Grid.Column="3" Content="Mute" IsChecked="{Binding Muted, Mode=TwoWay}" VerticalAlignment="Center"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    </StackPanel></ScrollViewer>
+</Window>
