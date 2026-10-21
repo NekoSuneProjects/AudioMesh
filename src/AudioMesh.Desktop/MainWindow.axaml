@@ -7,8 +7,8 @@
     <Style Selector="TextBlock"><Setter Property="Foreground" Value="#E9F1F8"/></Style>
     <Style Selector="Button"><Setter Property="Margin" Value="0,0,8,0"/></Style>
   </Window.Styles>
-  <DockPanel Margin="22">
-    <StackPanel DockPanel.Dock="Top" Spacing="12">
+  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="22" Spacing="12">
+    <StackPanel Spacing="12">
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Spacing="4">
           <TextBlock Text="AudioMesh" FontSize="30" FontWeight="Bold" Foreground="#49DABE"/>
@@ -56,11 +56,10 @@
       </Border>
       <TextBlock Text="Channels" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0"/>
     </StackPanel>
-    <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,12,0,0">
+    <StackPanel Spacing="4" Margin="0,12,0,0">
       <TextBlock Text="On Windows, install VB-CABLE or another virtual device to see it in the list. On Linux, virtual sinks are created via pactl." Foreground="#A8BCCB" TextWrapping="Wrap"/>
     </StackPanel>
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <ItemsControl x:Name="BusList">
+    <ItemsControl x:Name="BusList">
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <Border Background="#252F3D" CornerRadius="8" Padding="12" Margin="0,0,0,10">
@@ -80,7 +79,6 @@
             </Border>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </ScrollViewer>
-  </DockPanel>
+    </ItemsControl>
+    </StackPanel></ScrollViewer>
 </Window>
