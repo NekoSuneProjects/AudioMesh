@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private readonly SemaphoreSlim _routeLock = new(1, 1);
     private DispatcherTimer? _routeTimer;
     private readonly Dictionary<string, string> _lastRouted = new();
+    private readonly HashSet<string> _manualOverrides = [];
 
     public MainWindow()
     {
@@ -192,6 +193,8 @@ public partial class MainWindow : Window
         try
         {
             await _streamRouter.MoveAsync(stream.Id, sink);
+            _manualOverrides.Add(stream.Id);
+            _lastRouted.Remove(stream.Id);
             SetStatus($"Moved {stream.Label} to {SinkSelection.SelectedItem}.");
             await RefreshStreamsAsync();
         }
@@ -257,6 +260,7 @@ public partial class MainWindow : Window
             _profile.AppRoutingRules.RemoveAll(x => x.Application == key);
             _profile.AppRoutingRules.Add(new AppRoutingRule { Application = key, SinkId = sink });
             _lastRouted.Clear();
+            _manualOverrides.Clear();
             await SaveAsync();
             RenderRules();
             await ApplyRoutingRulesAsync();
@@ -286,6 +290,8 @@ public partial class MainWindow : Window
             var activeIds = streams.Select(x => x.Id).ToHashSet();
             foreach (var stale in _lastRouted.Keys.Where(id => !activeIds.Contains(id)).ToArray())
                 _lastRouted.Remove(stale);
+            _manualOverrides.RemoveWhere(id => !activeIds.Contains(id));
+            var sinkIndices = await _streamRouter.GetSinkIndicesAsync();
             var targets = _devices.Where(d => d.Kind == AudioDeviceKind.Playback)
                 .Select(d => d.Id).ToHashSet();
             foreach (var stream in streams)
@@ -293,8 +299,19 @@ public partial class MainWindow : Window
                 var rule = rules.FirstOrDefault(x => x.Enabled &&
                     (x.Application == stream.Executable || x.Application == stream.AppName));
                 if (rule is null || !targets.Contains(rule.SinkId) ||
-                    (_lastRouted.TryGetValue(stream.Id, out var previous) && previous == rule.SinkId))
+                    _manualOverrides.Contains(stream.Id)) continue;
+                // Detect external moves too: never assume the last requested destination is still active.
+                if (sinkIndices.TryGetValue(rule.SinkId, out var sinkIndex) && sinkIndex == stream.SinkIndex)
+                {
+                    _lastRouted[stream.Id] = rule.SinkId;
                     continue;
+                }
+                if (_lastRouted.TryGetValue(stream.Id, out var previous) && previous == rule.SinkId)
+                {
+                    // An external mixer intentionally moved the stream. Yield rather than fight it.
+                    _manualOverrides.Add(stream.Id);
+                    continue;
+                }
                 try
                 {
                     await _streamRouter.MoveAsync(stream.Id, rule.SinkId);
