@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly IAudioBackend _backend = BackendFactory.Create();
     private readonly ProfileStore _store = new();
     private readonly WindowsSessionMixer? _windowsMixer = OperatingSystem.IsWindows() ? new WindowsSessionMixer() : null;
+    private readonly WindowsMonitorRouter? _windowsMonitor = OperatingSystem.IsWindows() ? new WindowsMonitorRouter() : null;
     private readonly LinuxMonitorRouter? _monitorRouter = OperatingSystem.IsLinux() ? new LinuxMonitorRouter() : null;
     private readonly LinuxStreamRouter? _streamRouter = OperatingSystem.IsLinux() ? new LinuxStreamRouter() : null;
     private AudioProfile _profile = AudioProfile.Default();
@@ -32,6 +33,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         BusList.ItemsSource = _rows;
         WindowsSessionPanel.IsVisible = _windowsMixer is not null;
+        WindowsMonitorPanel.IsVisible = _windowsMonitor is not null;
         SavedCablesPanel.IsVisible = _backend is LinuxBackend;
         LinuxRoutingPanel.IsVisible = _streamRouter is not null;
         LinuxMonitorPanel.IsVisible = _monitorRouter is not null;
@@ -41,6 +43,7 @@ public partial class MainWindow : Window
         Closed += async (_, _) =>
         {
             _routeTimer?.Stop();
+            _windowsMonitor?.Dispose();
             if (_monitorRouter is not null)
             {
                 try { await _monitorRouter.DisconnectAllAsync(); }
@@ -114,6 +117,15 @@ public partial class MainWindow : Window
     {
         _devices = (await _backend.GetDevicesAsync()).ToList();
         RenderRows();
+        if (_windowsMonitor is not null)
+        {
+            WindowsMonitorSource.ItemsSource = _devices.Where(d =>
+                d.Kind == AudioDeviceKind.Playback && d.IsVirtual)
+                .Select(d => new DeviceOption(d.Id, d.Name)).ToList();
+            WindowsMonitorTarget.ItemsSource = _devices.Where(d =>
+                d.Kind == AudioDeviceKind.Playback && !d.IsVirtual)
+                .Select(d => new DeviceOption(d.Id, d.Name)).ToList();
+        }
         if (_streamRouter is not null)
             SinkSelection.ItemsSource = _devices.Where(d => d.Kind == AudioDeviceKind.Playback)
                 .Select(d => new DeviceOption(d.Id, d.Name)).ToList();
@@ -357,6 +369,48 @@ public partial class MainWindow : Window
             SetStatus(muted ? $"Muted {stream.Label}." : $"Unmuted {stream.Label}.");
         }
         catch (Exception ex) { SetStatus("Mute change failed: " + ex.Message); }
+    }
+
+    private void ConnectWindowsMonitorClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_windowsMonitor is null) return;
+        if (WindowsMonitorSource.SelectedItem is not DeviceOption { Id: { } source } ||
+            WindowsMonitorTarget.SelectedItem is not DeviceOption { Id: { } target })
+        {
+            SetStatus("Choose an existing virtual audio cable and physical output.");
+            return;
+        }
+        try
+        {
+            _windowsMonitor.Connect(source, target);
+            SetStatus($"Windows monitoring started: {source} → {target}.");
+        }
+        catch (Exception ex) { SetStatus("Windows monitor failed: " + ex.Message); }
+    }
+
+    private void DisconnectWindowsMonitorClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_windowsMonitor is null ||
+            WindowsMonitorSource.SelectedItem is not DeviceOption { Id: { } source } ||
+            WindowsMonitorTarget.SelectedItem is not DeviceOption { Id: { } target })
+        {
+            SetStatus("Choose a virtual cable and a destination.");
+            return;
+        }
+        _windowsMonitor.Disconnect(source, target);
+        SetStatus($"Stopped Windows monitoring: {source} → {target}.");
+    }
+
+    private void DisconnectAllWindowsMonitorsClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_windowsMonitor is null ||
+            WindowsMonitorSource.SelectedItem is not DeviceOption { Id: { } source })
+        {
+            SetStatus("Choose a virtual cable.");
+            return;
+        }
+        _windowsMonitor.DisconnectSource(source);
+        SetStatus($"Stopped all Windows monitors for {source}.");
     }
 
     private async Task RefreshWindowsSessionsAsync()
