@@ -6,7 +6,7 @@ namespace AudioMesh.Desktop;
 /// <summary>Manages loopbacks created by this instance only; will never unload unrelated modules.</summary>
 public sealed class LinuxMonitorRouter
 {
-    private readonly Dictionary<string, string> _moduleBySource = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Dictionary<string, string>> _moduleBySource = new(StringComparer.Ordinal);
 
     public async Task ConnectAsync(string virtualSink, string destinationSink, CancellationToken token = default)
     {
@@ -22,32 +22,41 @@ public sealed class LinuxMonitorRouter
         if (destinationSink.StartsWith("audiomesh_", StringComparison.Ordinal))
             throw new InvalidOperationException("Select physical output or an external sink to prevent virtual-sink feedback loops.");
 
-        // Replace the old connection only once the new loopback has successfully loaded.
+        // Each distinct destination gets its own loopback. Duplicate connections are not loaded.
+        if (_moduleBySource.TryGetValue(virtualSink, out var existing) && existing.ContainsKey(destinationSink)) return;
         var module = (await RunAsync(["load-module", "module-loopback",
             "source=" + virtualSink + ".monitor", "sink=" + destinationSink,
             "latency_msec=80"], token)).Trim();
         if (!uint.TryParse(module, out _))
             throw new InvalidOperationException("Audio server did not return a module identifier: " + module);
-        if (_moduleBySource.TryGetValue(virtualSink, out var old))
-        {
-            try { await RunAsync(["unload-module", old], token); }
-            catch
-            {
-                await RunAsync(["unload-module", module], token);
-                throw;
-            }
-        }
-        _moduleBySource[virtualSink] = module;
+        if (!_moduleBySource.TryGetValue(virtualSink, out var destinations))
+            _moduleBySource[virtualSink] = destinations = new Dictionary<string, string>(StringComparer.Ordinal);
+        destinations[destinationSink] = module;
     }
 
     public async Task DisconnectAsync(string virtualSink, CancellationToken token = default)
     {
-        if (!_moduleBySource.TryGetValue(virtualSink, out var module)) return;
-        await RunAsync(["unload-module", module], token);
-        _moduleBySource.Remove(virtualSink);
+        if (!_moduleBySource.TryGetValue(virtualSink, out var destinations)) return;
+        var failed = new List<Exception>();
+        foreach (var entry in destinations.ToArray())
+        {
+            try
+            {
+                await RunAsync(["unload-module", entry.Value], token);
+                destinations.Remove(entry.Key);
+            }
+            catch (Exception ex) { failed.Add(ex); }
+        }
+        if (destinations.Count == 0) _moduleBySource.Remove(virtualSink);
+        if (failed.Count != 0) throw new AggregateException("Could not disconnect every monitor.", failed);
     }
 
-    public bool IsConnected(string virtualSink) => _moduleBySource.ContainsKey(virtualSink);
+    public bool IsConnected(string virtualSink) =>
+        _moduleBySource.TryGetValue(virtualSink, out var destinations) && destinations.Count > 0;
+
+    public IReadOnlyList<string> GetDestinations(string virtualSink) =>
+        _moduleBySource.TryGetValue(virtualSink, out var destinations) ?
+            destinations.Keys.ToArray() : [];
 
     /// <summary>Unload only loopbacks created by this instance before the window closes.</summary>
     public async Task DisconnectAllAsync(CancellationToken token = default)
