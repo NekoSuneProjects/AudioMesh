@@ -98,7 +98,7 @@
             <TextBlock Text="Live Routing Graph" FontSize="18" FontWeight="SemiBold"/>
             <Button Content="Refresh graph" Click="RefreshRoutingGraphClicked"/>
           </StackPanel>
-          <TextBlock Text="Shows AudioMesh-managed virtual cable monitoring paths. Select and change connections in the routing panels above." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <TextBlock Text="Shows real AudioMesh-managed monitor routes. Click a virtual source node, then click a physical output node to connect them; use the panels above to disconnect." TextWrapping="Wrap" Foreground="#B8CBD8"/>
           <Canvas x:Name="RoutingCanvas" Height="180" MinWidth="510" Background="#151B26"/>
         </StackPanel>
       </Border>
