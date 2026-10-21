@@ -29,6 +29,23 @@ public sealed class LinuxStreamRouter
         return result;
     }
 
+    public async Task SetStreamVolumeAsync(string streamId, int percentage, CancellationToken token = default)
+    {
+        if (percentage is < 0 or > 150)
+            throw new ArgumentOutOfRangeException(nameof(percentage), "Volume must be between 0 and 150 percent.");
+        if (!(await GetStreamsAsync(token)).Any(s => s.Id == streamId))
+            throw new InvalidOperationException("Playback stream has ended.");
+        await PactlAsync(["set-sink-input-volume", streamId,
+            percentage.ToString(System.Globalization.CultureInfo.InvariantCulture) + "%"], token);
+    }
+
+    public async Task SetStreamMuteAsync(string streamId, bool muted, CancellationToken token = default)
+    {
+        if (!(await GetStreamsAsync(token)).Any(s => s.Id == streamId))
+            throw new InvalidOperationException("Playback stream has ended.");
+        await PactlAsync(["set-sink-input-mute", streamId, muted ? "1" : "0"], token);
+    }
+
     public async Task<IReadOnlyDictionary<string, string>> GetSinkIndicesAsync(CancellationToken token = default)
     {
         var output = await PactlAsync(["--format=json", "list", "sinks"], token);
