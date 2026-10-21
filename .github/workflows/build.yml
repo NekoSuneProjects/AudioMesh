@@ -1,0 +1,32 @@
+name: Cross-platform build
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore src/AudioMesh.Desktop/AudioMesh.Desktop.csproj
+      - name: Build
+        run: dotnet build src/AudioMesh.Desktop/AudioMesh.Desktop.csproj --configuration Release --no-restore
+      - name: Publish
+        run: dotnet publish src/AudioMesh.Desktop/AudioMesh.Desktop.csproj --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AudioMesh-${{ matrix.rid }}
+          path: publish/
