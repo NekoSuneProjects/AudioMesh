@@ -64,7 +64,7 @@
       <Border x:Name="LinuxMonitorPanel" Background="#202D38" Padding="12" CornerRadius="8">
         <StackPanel Spacing="8">
           <TextBlock Text="Virtual Cable Monitoring (Linux)" FontSize="18" FontWeight="SemiBold"/>
-          <TextBlock Text="Hear an AudioMesh virtual sink through a selected output. Choose a physical or external output to avoid feedback." Foreground="#B8CBD8" TextWrapping="Wrap"/>
+          <TextBlock Text="Send a virtual sink to multiple headphones, speakers, or other external outputs. Choose one destination at a time; disconnection removes all monitors from the selected cable." Foreground="#B8CBD8" TextWrapping="Wrap"/>
           <ComboBox x:Name="MonitorSourceSelection" PlaceholderText="AudioMesh virtual cable" HorizontalAlignment="Stretch"/>
           <ComboBox x:Name="MonitorTargetSelection" PlaceholderText="Headphones / speakers" HorizontalAlignment="Stretch"/>
           <StackPanel Orientation="Horizontal" Spacing="8">
