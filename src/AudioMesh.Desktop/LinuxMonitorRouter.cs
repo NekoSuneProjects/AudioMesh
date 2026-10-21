@@ -49,6 +49,19 @@ public sealed class LinuxMonitorRouter
 
     public bool IsConnected(string virtualSink) => _moduleBySource.ContainsKey(virtualSink);
 
+    /// <summary>Unload only loopbacks created by this instance before the window closes.</summary>
+    public async Task DisconnectAllAsync(CancellationToken token = default)
+    {
+        var failures = new List<Exception>();
+        foreach (var source in _moduleBySource.Keys.ToArray())
+        {
+            try { await DisconnectAsync(source, token); }
+            catch (Exception ex) { failures.Add(ex); }
+        }
+        if (failures.Count > 0)
+            throw new AggregateException("Some monitor loopbacks could not be removed.", failures);
+    }
+
     private static async Task<HashSet<string>> GetSinkNamesAsync(CancellationToken token)
     {
         var output = await RunAsync(["--format=json", "list", "sinks"], token);
