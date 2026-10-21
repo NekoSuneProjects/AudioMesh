@@ -17,7 +17,7 @@ public partial class MainWindow : Window
     private readonly LinuxStreamRouter? _streamRouter = OperatingSystem.IsLinux() ? new LinuxStreamRouter() : null;
     private AudioProfile _profile = AudioProfile.Default();
     private readonly ObservableCollection<BusRow> _rows = [];
-    private readonly Stack<string> _createdSinkModules = new();
+    private readonly Stack<(string ModuleId, string Name)> _createdSinkModules = new();
     private List<AudioDevice> _devices = [];
     private bool _loading;
     private readonly SemaphoreSlim _saveLock = new(1, 1);
@@ -54,6 +54,8 @@ public partial class MainWindow : Window
         {
             _loading = true;
             _profile = await _store.LoadAsync();
+            _profile.VirtualSinkNames ??= [];
+            await RestoreVirtualSinksAsync();
             await RefreshAsync();
             RenderRows();
             if (_windowsMixer is not null) await RefreshWindowsSessionsAsync();
@@ -151,13 +153,42 @@ public partial class MainWindow : Window
         await SaveAsync();
     }
 
+    private async Task RestoreVirtualSinksAsync()
+    {
+        if (!_backend.CanCreateVirtualSink) return;
+        var existing = (await _backend.GetDevicesAsync())
+            .Where(d => d.Kind == AudioDeviceKind.Playback)
+            .Select(d => d.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var name in _profile.VirtualSinkNames.Distinct(StringComparer.Ordinal).ToArray())
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z][A-Za-z0-9_]{0,47}$"))
+                continue;
+            if (existing.Contains("audiomesh_" + name)) continue;
+            try
+            {
+                var moduleId = await _backend.CreateVirtualSinkAsync(name);
+                _createdSinkModules.Push((moduleId, name));
+                existing.Add("audiomesh_" + name);
+            }
+            catch (Exception ex) { SetStatus($"Could not restore virtual cable {name}: {ex.Message}"); }
+        }
+        RemoveSinkButton.IsEnabled = _createdSinkModules.Count > 0;
+    }
+
     private async void CreateSinkClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
             var name = SinkName.Text?.Trim() ?? "";
+            if (_profile.VirtualSinkNames.Contains(name, StringComparer.Ordinal))
+            {
+                SetStatus($"A saved virtual cable named {name} already exists.");
+                return;
+            }
             var id = await _backend.CreateVirtualSinkAsync(name);
-            _createdSinkModules.Push(id);
+            _createdSinkModules.Push((id, name));
+            _profile.VirtualSinkNames.Add(name);
+            await SaveAsync();
             RemoveSinkButton.IsEnabled = true;
             await RefreshAsync();
             SetStatus($"Created Linux virtual sink audiomesh_{name} (module {id}). Select it from a bus.");
@@ -167,11 +198,13 @@ public partial class MainWindow : Window
 
     private async void RemoveSinkClicked(object? sender, RoutedEventArgs e)
     {
-        if (!_createdSinkModules.TryPeek(out var id)) return;
+        if (!_createdSinkModules.TryPeek(out var registration)) return;
         try
         {
-            await _backend.RemoveVirtualSinkAsync(id);
+            await _backend.RemoveVirtualSinkAsync(registration.ModuleId);
             _createdSinkModules.Pop();
+            _profile.VirtualSinkNames.Remove(registration.Name);
+            await SaveAsync();
             RemoveSinkButton.IsEnabled = _createdSinkModules.Count > 0;
             await RefreshAsync();
             SetStatus("Removed last virtual sink created by AudioMesh.");
