@@ -51,7 +51,7 @@ On Linux, `pactl info` should succeed in the active desktop audio session. Custo
 - Monitor loopbacks use `module-loopback` (80 ms target latency). AudioMesh attempts to unload managed monitoring modules on exit; crashes or abrupt shutdown may leave loopbacks running until the audio server is restarted.
 - Monitor connections support multiple external/physical destinations per AudioMesh virtual sink; feedback protection prevents chaining into another AudioMesh virtual sink.
 - External device changes require clicking Refresh.
-- The remove-last-cable command only removes modules created by the current AudioMesh process; saved sinks that survive a previous app exit are reused but cannot yet be removed from the UI after relaunch.
+- Saved virtual cables can be removed through **Remove selected saved cable**, even after relaunch; this unloads only a `module-null-sink` whose `sink_name` exactly matches the selected AudioMesh profile cable. **Remove last created cable** continues to remove only cables created in the current process.
 - Endpoint volume affects the actual device, not a private bus, and may also affect other applications sharing that endpoint.
 - Microphone input devices are detected but are not processed or remixed.
 
