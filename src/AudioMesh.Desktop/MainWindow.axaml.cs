@@ -371,6 +371,19 @@ public partial class MainWindow : Window
         catch (Exception ex) { SetStatus("Mute change failed: " + ex.Message); }
     }
 
+    private void OpenWindowsRoutingSettingsClicked(object? sender, RoutedEventArgs e)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:apps-volume")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex) { SetStatus("Could not open Windows audio settings: " + ex.Message); }
+    }
+
     private void ConnectWindowsMonitorClicked(object? sender, RoutedEventArgs e)
     {
         if (_windowsMonitor is null) return;
