@@ -531,8 +531,7 @@ public partial class MainWindow : Window
                 .Select(d => d.Id).ToHashSet();
             foreach (var stream in streams)
             {
-                var rule = rules.FirstOrDefault(x => x.Enabled &&
-                    (x.Application == stream.Executable || x.Application == stream.AppName));
+                var rule = RoutingRules.Match(rules, stream.Executable, stream.AppName);
                 if (rule is null || !targets.Contains(rule.SinkId) ||
                     _manualOverrides.Contains(stream.Id)) continue;
                 // Detect external moves too: never assume the last requested destination is still active.
