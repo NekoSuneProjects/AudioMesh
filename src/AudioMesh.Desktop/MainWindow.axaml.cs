@@ -34,7 +34,15 @@ public partial class MainWindow : Window
         CreateSinkButton.IsEnabled = _backend.CanCreateVirtualSink;
         RemoveSinkButton.IsEnabled = false;
         Opened += async (_, _) => await LoadAsync();
-        Closed += (_, _) => _routeTimer?.Stop();
+        Closed += async (_, _) =>
+        {
+            _routeTimer?.Stop();
+            if (_monitorRouter is not null)
+            {
+                try { await _monitorRouter.DisconnectAllAsync(); }
+                catch (Exception ex) { System.Diagnostics.Trace.WriteLine("AudioMesh monitor cleanup: " + ex); }
+            }
+        };
     }
 
     private async Task LoadAsync()
