@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using AudioMesh.Core;
 using NAudio.CoreAudioApi;
@@ -112,6 +113,27 @@ public sealed class LinuxBackend : IAudioBackend
         if (!int.TryParse(moduleId, out _))
             throw new ArgumentException("Invalid module ID.");
         await RunAsync(["unload-module", moduleId], token);
+    }
+
+    /// <summary>Remove one explicitly selected, profile-managed AudioMesh null sink by name.</summary>
+    public async Task<bool> RemoveNamedVirtualSinkAsync(string name, CancellationToken token = default)
+    {
+        if (!SafeName.IsMatch(name)) throw new ArgumentException("Invalid AudioMesh virtual cable name.");
+        var json = await RunAsync(["--format=json", "list", "modules"], token);
+        using var doc = JsonDocument.Parse(json);
+        var targetArgument = "sink_name=audiomesh_" + name;
+        foreach (var entry in doc.RootElement.EnumerateArray())
+        {
+            if (!entry.TryGetProperty("name", out var module) ||
+                module.GetString() != "module-null-sink" ||
+                !entry.TryGetProperty("argument", out var arg) ||
+                !entry.TryGetProperty("index", out var id)) continue;
+            var parts = (arg.GetString() ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (!parts.Contains(targetArgument, StringComparer.Ordinal)) continue;
+            await RunAsync(["unload-module", id.ToString()], token);
+            return true;
+        }
+        return false;
     }
 
     private static async Task<string> RunAsync(IReadOnlyList<string> args, CancellationToken token)
