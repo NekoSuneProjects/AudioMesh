@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private DispatcherTimer? _routeTimer;
     private readonly Dictionary<string, string> _lastRouted = new();
     private readonly HashSet<string> _manualOverrides = [];
+    private readonly HashSet<string> _mutedStreams = [];
 
     public MainWindow()
     {
@@ -240,6 +241,35 @@ public partial class MainWindow : Window
             SetStatus($"Disconnected monitoring for {source}.");
         }
         catch (Exception ex) { SetStatus("Could not disconnect monitor: " + ex.Message); }
+    }
+
+    private async void SetStreamVolumeClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_streamRouter is null || StreamSelection.SelectedItem is not StreamOption stream) 
+        { SetStatus("Select a running application first."); return; }
+        if (!int.TryParse(StreamVolumePercent.Text, out var percent) || percent < 0 || percent > 150)
+        { SetStatus("Enter a percentage from 0 to 150."); return; }
+        try
+        {
+            await _streamRouter.SetStreamVolumeAsync(stream.Id, percent);
+            SetStatus($"Set {stream.Label} volume to {percent}%.");
+        }
+        catch (Exception ex) { SetStatus("Volume change failed: " + ex.Message); }
+    }
+
+    private async void ToggleStreamMuteClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_streamRouter is null || StreamSelection.SelectedItem is not StreamOption stream)
+        { SetStatus("Select a running application first."); return; }
+        var muted = !_mutedStreams.Contains(stream.Id);
+        try
+        {
+            await _streamRouter.SetStreamMuteAsync(stream.Id, muted);
+            if (muted) _mutedStreams.Add(stream.Id);
+            else _mutedStreams.Remove(stream.Id);
+            SetStatus(muted ? $"Muted {stream.Label}." : $"Unmuted {stream.Label}.");
+        }
+        catch (Exception ex) { SetStatus("Mute change failed: " + ex.Message); }
     }
 
     private void RenderRules()
