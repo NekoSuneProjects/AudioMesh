@@ -15,7 +15,7 @@ public sealed class AudioProfile
     public List<AudioBus> Buses { get; set; } = [];
     public static AudioProfile Default() => new()
     {
-        Buses = ["Game", "Chat", "Media", "Aux", "Mic"].Select(n => new AudioBus { Name = n }).ToList()
+        Buses = new[] { "Game", "Chat", "Media", "Aux", "Mic" }.Select(n => new AudioBus { Name = n }).ToList()
     };
 }
 public interface IAudioBackend
