@@ -558,7 +558,28 @@ public partial class MainWindow : Window
         finally { _routeLock.Release(); }
     }
 
-    private void SetStatus(string text) => StatusText.Text = text;
+    private void RefreshRoutingGraphClicked(object? sender, RoutedEventArgs e) => RenderRoutingGraph();
+
+    private void RenderRoutingGraph()
+    {
+        var connections = new List<(string Source, string Target)>();
+        if (_windowsMonitor is not null)
+            connections.AddRange(_windowsMonitor.ActiveConnections);
+        if (_monitorRouter is not null)
+        {
+            foreach (var device in _devices.Where(d => d.Kind == AudioDeviceKind.Playback &&
+                         d.Id.StartsWith("audiomesh_", StringComparison.Ordinal)))
+                connections.AddRange(_monitorRouter.GetDestinations(device.Id)
+                    .Select(target => (Source: device.Id, Target: target)));
+        }
+        RoutingGraphRenderer.Render(RoutingCanvas, _devices, connections);
+    }
+
+    private void SetStatus(string text)
+    {
+        StatusText.Text = text;
+        RenderRoutingGraph();
+    }
 }
 
 public sealed class BusRow : INotifyPropertyChanged
