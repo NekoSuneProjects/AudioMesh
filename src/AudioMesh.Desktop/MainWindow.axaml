@@ -46,6 +46,19 @@
           </Grid>
         </StackPanel>
       </Border>
+      <Border x:Name="WindowsMonitorPanel" Background="#202D38" Padding="12" CornerRadius="8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Windows Virtual Cable Monitoring" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Monitor audio already playing through an installed virtual cable. Choose a virtual source and a physical output; avoid routing loops." TextWrapping="Wrap" Foreground="#B8CBD8"/>
+          <ComboBox x:Name="WindowsMonitorSource" PlaceholderText="Virtual playback cable"/>
+          <ComboBox x:Name="WindowsMonitorTarget" PlaceholderText="Physical headphones / speakers"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Connect" Click="ConnectWindowsMonitorClicked"/>
+            <Button Content="Disconnect selected" Click="DisconnectWindowsMonitorClicked"/>
+            <Button Content="Disconnect all from source" Click="DisconnectAllWindowsMonitorsClicked"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
       <Border x:Name="LinuxRoutingPanel" Background="#202D38" Padding="12" CornerRadius="8">
         <StackPanel Spacing="8">
           <TextBlock Text="Application Audio Routing (Linux)" FontSize="18" FontWeight="SemiBold"/>
