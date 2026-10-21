@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, string> _lastRouted = new();
     private readonly HashSet<string> _manualOverrides = [];
     private readonly HashSet<string> _mutedStreams = [];
+    private string? _graphSelectedSource;
 
     public MainWindow()
     {
@@ -572,7 +573,32 @@ public partial class MainWindow : Window
                 connections.AddRange(_monitorRouter.GetDestinations(device.Id)
                     .Select(target => (Source: device.Id, Target: target)));
         }
-        RoutingGraphRenderer.Render(RoutingCanvas, _devices, connections);
+        RoutingGraphRenderer.Render(RoutingCanvas, _devices, connections, GraphDeviceClicked);
+    }
+
+    private async void GraphDeviceClicked(AudioDevice device)
+    {
+        if (device.Kind != AudioDeviceKind.Playback) return;
+        if (device.IsVirtual || device.Id.StartsWith("audiomesh_", StringComparison.Ordinal))
+        {
+            _graphSelectedSource = device.Id;
+            SetStatus($"Selected virtual cable {device.Name}. Click a physical output to connect it.");
+            return;
+        }
+        if (_graphSelectedSource is null)
+        {
+            SetStatus("Select a virtual cable in the graph first, then an output.");
+            return;
+        }
+        var source = _graphSelectedSource;
+        _graphSelectedSource = null;
+        try
+        {
+            if (_windowsMonitor is not null) _windowsMonitor.Connect(source, device.Id);
+            else if (_monitorRouter is not null) await _monitorRouter.ConnectAsync(source, device.Id);
+            SetStatus($"Connected graph route: {source} → {device.Name}.");
+        }
+        catch (Exception ex) { SetStatus("Graph routing failed: " + ex.Message); }
     }
 
     private void SetStatus(string text)
