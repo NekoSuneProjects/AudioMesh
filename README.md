@@ -12,7 +12,7 @@ A cross-platform desktop audio routing manager (work in progress) for Windows an
 - Create/remove Linux virtual sinks with PipeWire's PulseAudio compatibility layer or PulseAudio (`pactl`)
 - Re-scan devices, preserve user profiles, and show backend errors
 - Linux: enumerate active playback streams and move them to any available sink (physical or virtual), via pactl
-- Linux: connect AudioMesh virtual-sink monitor sources to physical or external sinks using managed loopback modules
+- Linux: fan out AudioMesh virtual-sink monitors to multiple physical or external sinks using managed loopback modules; disconnect destinations independently
 - Linux: save per-application routing rules and reapply them to new audio streams every 3 seconds while the app is open
 - Linux: adjust volume (0–150%) and mute of a selected active playback stream independently of other streams
 - Linux: manual moves (including moves made by another mixer) override automatic routing for the remaining lifetime of that playback stream, avoiding routing fights; updating a rule clears those overrides
@@ -48,7 +48,7 @@ On Linux, `pactl info` should succeed in the active desktop audio session. Custo
 - Linux routing rules are saved to the JSON profile and reapplied while AudioMesh runs, but do not work when the application is closed. Route matching uses executable name where available; applications without identifying metadata cannot be saved. Windows still needs app-specific routing implementation; use OS sound settings meanwhile.
 - Linux sink removal only unloads modules created by the current AudioMesh process. It deliberately will not unload arbitrary user modules.
 - Monitor loopbacks use `module-loopback` (80 ms target latency). AudioMesh attempts to unload managed monitoring modules on exit; crashes or abrupt shutdown may leave loopbacks running until the audio server is restarted.
-- Monitor connections only support one external/physical destination per virtual sink for now; feedback protection prevents chaining into another AudioMesh virtual sink.
+- Monitor connections support multiple external/physical destinations per AudioMesh virtual sink; feedback protection prevents chaining into another AudioMesh virtual sink.
 - External device changes require clicking Refresh.
 - Endpoint volume affects the actual device, not a private bus, and may also affect other applications sharing that endpoint.
 - Microphone input devices are detected but are not processed or remixed.
