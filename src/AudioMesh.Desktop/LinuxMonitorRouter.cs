@@ -34,6 +34,15 @@ public sealed class LinuxMonitorRouter
         destinations[destinationSink] = module;
     }
 
+    public async Task DisconnectDestinationAsync(string virtualSink, string destinationSink, CancellationToken token = default)
+    {
+        if (!_moduleBySource.TryGetValue(virtualSink, out var destinations) ||
+            !destinations.TryGetValue(destinationSink, out var module)) return;
+        await RunAsync(["unload-module", module], token);
+        destinations.Remove(destinationSink);
+        if (destinations.Count == 0) _moduleBySource.Remove(virtualSink);
+    }
+
     public async Task DisconnectAsync(string virtualSink, CancellationToken token = default)
     {
         if (!_moduleBySource.TryGetValue(virtualSink, out var destinations)) return;
