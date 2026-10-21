@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using AudioMesh.Core;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 
 namespace AudioMesh.Desktop;
 
@@ -19,6 +20,9 @@ public partial class MainWindow : Window
     private List<AudioDevice> _devices = [];
     private bool _loading;
     private readonly SemaphoreSlim _saveLock = new(1, 1);
+    private readonly SemaphoreSlim _routeLock = new(1, 1);
+    private DispatcherTimer? _routeTimer;
+    private readonly Dictionary<string, string> _lastRouted = new();
 
     public MainWindow()
     {
@@ -29,6 +33,7 @@ public partial class MainWindow : Window
         CreateSinkButton.IsEnabled = _backend.CanCreateVirtualSink;
         RemoveSinkButton.IsEnabled = false;
         Opened += async (_, _) => await LoadAsync();
+        Closed += (_, _) => _routeTimer?.Stop();
     }
 
     private async Task LoadAsync()
@@ -39,7 +44,14 @@ public partial class MainWindow : Window
             _profile = await _store.LoadAsync();
             await RefreshAsync();
             RenderRows();
-            if (_streamRouter is not null) await RefreshStreamsAsync();
+            if (_streamRouter is not null)
+            {
+                await RefreshStreamsAsync();
+                RenderRules();
+                _routeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+                _routeTimer.Tick += async (_, _) => await ApplyRoutingRulesAsync();
+                _routeTimer.Start();
+            }
             SetStatus("Ready. Changes are saved automatically.");
         }
         catch (Exception ex) { SetStatus("Audio initialization failed: " + ex.Message); }
@@ -219,6 +231,82 @@ public partial class MainWindow : Window
         catch (Exception ex) { SetStatus("Could not disconnect monitor: " + ex.Message); }
     }
 
+    private void RenderRules()
+    {
+        RoutingRuleSelection.ItemsSource = _profile.AppRoutingRules
+            .Select(r => new RuleOption(r.Application, r.SinkId)).ToList();
+    }
+
+    private async void SaveRoutingRuleClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_streamRouter is null || StreamSelection.SelectedItem is not StreamOption selected ||
+            SinkSelection.SelectedItem is not DeviceOption { Id: { } sink }) 
+        {
+            SetStatus("Choose a running application and an output before saving a rule.");
+            return;
+        }
+        try
+        {
+            var stream = (await _streamRouter.GetStreamsAsync()).FirstOrDefault(x => x.Id == selected.Id);
+            if (stream is null) { SetStatus("The selected application stream has ended."); return; }
+            // Prefer executable names, which remain stable when the application's display name changes.
+            var key = string.IsNullOrWhiteSpace(stream.Executable) ? stream.AppName : stream.Executable;
+            if (string.IsNullOrWhiteSpace(key) || key == "Unknown application")
+            { SetStatus("This stream has no identifiable application name."); return; }
+            _profile.AppRoutingRules ??= [];
+            _profile.AppRoutingRules.RemoveAll(x => x.Application == key);
+            _profile.AppRoutingRules.Add(new AppRoutingRule { Application = key, SinkId = sink });
+            _lastRouted.Clear();
+            await SaveAsync();
+            RenderRules();
+            await ApplyRoutingRulesAsync();
+            SetStatus($"Saved auto-routing: {key} → {sink}.");
+        }
+        catch (Exception ex) { SetStatus("Could not save routing rule: " + ex.Message); }
+    }
+
+    private async void DeleteRoutingRuleClicked(object? sender, RoutedEventArgs e)
+    {
+        if (RoutingRuleSelection.SelectedItem is not RuleOption selected) return;
+        _profile.AppRoutingRules.RemoveAll(x => x.Application == selected.Application && x.SinkId == selected.Sink);
+        _lastRouted.Clear();
+        await SaveAsync();
+        RenderRules();
+        SetStatus("Deleted application routing rule.");
+    }
+
+    private async Task ApplyRoutingRulesAsync()
+    {
+        if (_streamRouter is null || !_routeLock.Wait(0)) return;
+        try
+        {
+            var rules = _profile.AppRoutingRules ?? [];
+            if (rules.Count == 0) return;
+            var streams = await _streamRouter.GetStreamsAsync();
+            var activeIds = streams.Select(x => x.Id).ToHashSet();
+            foreach (var stale in _lastRouted.Keys.Where(id => !activeIds.Contains(id)).ToArray())
+                _lastRouted.Remove(stale);
+            var targets = _devices.Where(d => d.Kind == AudioDeviceKind.Playback)
+                .Select(d => d.Id).ToHashSet();
+            foreach (var stream in streams)
+            {
+                var rule = rules.FirstOrDefault(x => x.Enabled &&
+                    (x.Application == stream.Executable || x.Application == stream.AppName));
+                if (rule is null || !targets.Contains(rule.SinkId) ||
+                    (_lastRouted.TryGetValue(stream.Id, out var previous) && previous == rule.SinkId))
+                    continue;
+                try
+                {
+                    await _streamRouter.MoveAsync(stream.Id, rule.SinkId);
+                    _lastRouted[stream.Id] = rule.SinkId;
+                }
+                catch (Exception ex) { SetStatus($"Routing {stream.AppName} failed: {ex.Message}"); }
+            }
+        }
+        catch (Exception ex) { SetStatus("Automatic routing failed: " + ex.Message); }
+        finally { _routeLock.Release(); }
+    }
+
     private void SetStatus(string text) => StatusText.Text = text;
 }
 
@@ -284,4 +372,9 @@ public sealed record DeviceOption(string? Id, string Label)
 public sealed record StreamOption(string Id, string Label)
 {
     public override string ToString() => Label;
+}
+
+public sealed record RuleOption(string Application, string Sink)
+{
+    public override string ToString() => $"{Application} → {Sink}";
 }
